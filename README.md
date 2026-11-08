@@ -7,14 +7,15 @@ A gamified maths-learning web app for **CBSE Class 9 & 10** (NCERT rationalised 
 > Hosted on Render's free plan: the first visit after a quiet spell can take ~30–60 s while the server wakes up.
 
 ## Demo logins
-All demo accounts use the password **`Password@123`**.
+The demo accounts use the password **`Password@123`**.
 
 | Role | Email |
 |---|---|
 | Student | aarya@mathquest.dev (also kabir@, meera@, rohan@, zoya@) |
 | Parent | parent@mathquest.dev |
 | Teacher | teacher@mathquest.dev |
-| Super admin | admin@mathquest.dev |
+
+The admin account is private: its password is set with the `ADMIN_EMAIL` / `ADMIN_PASSWORD` environment variables and applied each time the server starts.
 
 If the server can't be reached, the app falls back to **demo mode** (everything runs in the browser, nothing is saved).
 
@@ -36,7 +37,7 @@ If the server can't be reached, the app falls back to **demo mode** (everything 
 
 ## Run locally
 1. Node.js 18+ and MongoDB (local or a free Atlas cluster).
-2. `cp .env.example .env` and set `MONGODB_URI` and `JWT_SECRET`.
+2. `cp .env.example .env` and set `MONGODB_URI`, `JWT_SECRET` and your own `ADMIN_PASSWORD`.
 3. `npm install`
 4. `npm run dev` → http://localhost:5000 (the app) and http://localhost:5000/api/v1 (the API)
 

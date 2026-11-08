@@ -1,5 +1,6 @@
 import { env } from '../config/env';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import mongoose from 'mongoose';
 import { connectDB } from '../config/db';
 import { ClassLevel, Subject, Chapter, Topic, Question, Quiz, Level, Badge, User, Classroom, Assignment, SystemSetting } from '../models';
@@ -82,15 +83,18 @@ export async function seedDatabase({ drop = false }: { drop?: boolean } = {}) {
   for (const n of ['Kabir', 'Meera', 'Rohan', 'Zoya']) others.push(await ensure({ name: n, email: `${n.toLowerCase()}@mathquest.dev`, passwordHash: hash, role: 'STUDENT', classLevel: c9._id, xp: 0 }));
   await ensure({ name: 'Aarya Parent', email: 'parent@mathquest.dev', passwordHash: hash, role: 'PARENT', children: [aarya._id] });
   const teacher = await ensure({ name: 'Ms. Sharma', email: 'teacher@mathquest.dev', passwordHash: hash, role: 'TEACHER' });
-  // Owner / super admin from env (ADMIN_EMAIL, ADMIN_PASSWORD)
-  await ensure({ name: env.adminName, email: env.adminEmail, passwordHash: await bcrypt.hash(env.adminPassword, 12), role: 'SUPER_ADMIN', emailVerified: true });
+  // Owner / super admin from env (ADMIN_EMAIL, ADMIN_PASSWORD). Without ADMIN_PASSWORD it gets a random,
+  // unusable password; set the env vars and restart to log in (ensureAdmin applies them on start).
+  const adminPw = env.adminPassword || crypto.randomBytes(24).toString('hex');
+  if (!env.adminPassword) console.warn('ADMIN_PASSWORD is not set: the admin account was created with a random password.');
+  await ensure({ name: env.adminName, email: env.adminEmail, passwordHash: await bcrypt.hash(adminPw, 12), role: 'SUPER_ADMIN', emailVerified: true });
   if (!(await Classroom.countDocuments({ teacher: teacher._id }))) {
     const room = await Classroom.create({ name: 'Class 9-A', teacher: teacher._id, classLevel: c9._id, students: [aarya._id, ...others.map(o => o._id)] });
     if (firstTopicC9) await Assignment.create({ classroom: room._id, kind: 'LESSON', title: `Start: ${firstTopicC9.name}`, topic: firstTopicC9._id, dueDate: new Date(Date.now() + 4 * 86400000) });
   }
 
   console.log(`Seeded CBSE Class 9-10: ${(curriculum as ChapterData[]).length} chapters, ${topicCount} topics, ${questionCount} questions.`);
-  console.log('Logins: aarya@ / parent@ / teacher@ / admin@mathquest.dev, password Password@123');
+  console.log('Demo logins: aarya@ / parent@ / teacher@mathquest.dev (password in README). Admin: ADMIN_EMAIL / ADMIN_PASSWORD env.');
 }
 
 // CLI: `npm run seed` (adds what is missing) or `npm run seed -- --fresh` (wipes the database first)

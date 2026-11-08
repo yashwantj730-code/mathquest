@@ -33,10 +33,11 @@
   var hashPw = function (p) { return sha256("mq:" + p); };
 
   /* ---------- demo store ---------- */
-  var DEMO_HASH = "742790564d8c565d8c7db336ace17dd5cc7b5a2597349d9a0500d3a4de9e5f24"; // Password@123
+  var DEMO_HASH = "742790564d8c565d8c7db336ace17dd5cc7b5a2597349d9a0500d3a4de9e5f24"; // demo student accounts (offline demo only)
+  var NO_LOGIN = "x"; // the offline demo has no admin login
   var now = Date.now(), uidN = 100;
   var USERS = [
-    { id: "u1", name: "MathQuest Admin", email: "admin@mathquest.dev", hash: DEMO_HASH, role: "ADMIN", cls: null, blocked: false, at: now },
+    { id: "u1", name: "MathQuest Admin", email: "admin@mathquest.dev", hash: NO_LOGIN, role: "ADMIN", cls: null, blocked: false, at: now },
     { id: "u2", name: "Aarya", email: "aarya@mathquest.dev", hash: DEMO_HASH, role: "STUDENT", cls: 9, blocked: false, at: now },
     { id: "u3", name: "Kabir", email: "kabir@mathquest.dev", hash: DEMO_HASH, role: "STUDENT", cls: 9, blocked: false, at: now },
     { id: "u4", name: "Meera", email: "meera@mathquest.dev", hash: DEMO_HASH, role: "STUDENT", cls: 9, blocked: false, at: now },
@@ -67,22 +68,63 @@
   /* ---------- styles ---------- */
   var css = document.createElement("style");
   css.textContent =
-    ".ma-gate{position:fixed;inset:0;z-index:9000;overflow:auto;background:radial-gradient(circle at 20% 15%,#B39BFF 0,#7C4DFF 45%,#4B2BB8 100%);display:flex;align-items:flex-start;justify-content:center;padding:28px 14px}" +
-    ".ma-gate[hidden]{display:none}.ma-wrap{width:100%;max-width:920px;display:grid;grid-template-columns:1fr 1.1fr;gap:18px;align-items:center;margin:auto}" +
-    ".ma-hero{color:#fff;text-align:center}.ma-hero img{width:min(260px,60vw);filter:drop-shadow(0 10px 0 rgba(0,0,0,.18));animation:maBob 3s ease-in-out infinite}.ma-hero h1{font-size:clamp(30px,5vw,46px);margin:8px 0 4px;text-shadow:0 4px 0 #2B2350}.ma-hero p{margin:0;font-weight:700;opacity:.95}" +
-    "@keyframes maBob{50%{transform:translateY(-10px)}}@media (prefers-reduced-motion:reduce){.ma-hero img{animation:none}}" +
-    ".ma-card{background:#fff;border:4px solid #2B2350;border-radius:28px;box-shadow:0 8px 0 #2B2350;padding:22px}" +
-    ".ma-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#F1ECFF;border:3px solid #2B2350;border-radius:999px;padding:5px;margin-bottom:16px}" +
-    ".ma-tabs button{border:0;border-radius:999px;padding:10px;font:800 16px inherit;background:transparent;cursor:pointer;color:#2B2350}.ma-tabs button[aria-selected=true]{background:#FFC93C;box-shadow:0 3px 0 #2B2350}" +
-    ".ma-f{display:grid;gap:12px}.ma-f label{display:grid;gap:5px;font-weight:800;color:#2B2350}.ma-f input,.ma-f select{font:600 16px inherit;padding:12px 14px;border:3px solid #2B2350;border-radius:14px;background:#fff;min-width:0}" +
-    ".ma-f input:focus,.ma-f select:focus{outline:3px solid #7C4DFF;outline-offset:2px}.ma-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}" +
-    ".ma-roles{display:flex;gap:8px;flex-wrap:wrap}.ma-roles label{display:flex;align-items:center;gap:6px;border:3px solid #2B2350;border-radius:999px;padding:7px 12px;cursor:pointer;font-weight:800}.ma-roles input{accent-color:#7C4DFF}" +
-    ".ma-roles label:has(input:checked){background:#D3F6F1}.ma-err{color:#C62828;font-weight:800;min-height:1.2em;margin:0}.ma-ok{color:#1B7F4B}" +
-    ".ma-mode{margin-top:14px;border-top:2px dashed #ddd6f5;padding-top:10px;font-size:14px}.ma-mode summary{cursor:pointer;font-weight:800}.ma-pw{position:relative}.ma-pw input{width:100%;box-sizing:border-box;padding-right:64px}" +
-    ".ma-pw button{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:#F1ECFF;border-radius:10px;padding:6px 8px;font-weight:800;cursor:pointer}" +
-    ".ma-demo{font-size:13px;color:#5b5878;margin:10px 0 0}.ma-user{display:inline-flex;align-items:center;gap:8px}" +
+    /* ---- login gate: animated gradient, blobs, floating maths, glass card ---- */
+    ".ma-gate{position:fixed;inset:0;z-index:10000;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;font-family:var(--x-body,Nunito,system-ui,sans-serif);color:#2B2350;" +
+    "background:#4B2BB8 linear-gradient(135deg,#5B2EE6 0%,#7C4DFF 30%,#B06BFF 55%,#14C8B4 100%);background-size:300% 300%;animation:maGrad 18s ease infinite}" +
+    ".ma-gate[hidden]{display:none!important}@keyframes maGrad{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}" +
+    ".ma-bg{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}" +
+    ".ma-blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:.55;animation:maBlob 22s ease-in-out infinite alternate}" +
+    ".ma-blob.b1{width:46vmax;height:46vmax;background:#FFC93C;left:-14vmax;top:-16vmax;opacity:.35}.ma-blob.b2{width:40vmax;height:40vmax;background:#FF6B9A;right:-12vmax;top:20%;animation-duration:26s}" +
+    ".ma-blob.b3{width:44vmax;height:44vmax;background:#14C8B4;left:20%;bottom:-22vmax;animation-duration:30s}" +
+    "@keyframes maBlob{0%{transform:translate(0,0) scale(1)}50%{transform:translate(6vmax,4vmax) scale(1.12)}100%{transform:translate(-4vmax,7vmax) scale(.92)}}" +
+    ".ma-sym{position:absolute;bottom:-60px;color:rgba(255,255,255,.28);font:700 28px/1 var(--x-round,Fredoka,system-ui);animation:maFloat linear infinite;will-change:transform}" +
+    "@keyframes maFloat{0%{transform:translateY(0) rotate(0);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translateY(-115vh) rotate(200deg);opacity:0}}" +
+    ".ma-wrap{position:relative;z-index:1;box-sizing:border-box;width:100%;max-width:980px;min-height:100%;margin:0 auto;padding:32px 20px;display:grid;grid-template-columns:1fr minmax(0,440px);gap:40px;align-items:center}" +
+    ".ma-hero{color:#fff;text-align:center;animation:maIn .8s cubic-bezier(.2,.8,.2,1) both}" +
+    ".ma-hero img{width:min(240px,50vw);height:auto;filter:drop-shadow(0 18px 24px rgba(30,10,80,.35));animation:maBob 3.4s ease-in-out infinite}" +
+    ".ma-hero h1{font:700 clamp(30px,5vw,48px)/1.05 var(--x-round,Fredoka,system-ui);margin:10px 0 6px;letter-spacing:-.5px;text-shadow:0 4px 18px rgba(30,10,80,.35)}" +
+    ".ma-hero p{margin:0;font-weight:700;font-size:16px;opacity:.95}.ma-chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px}" +
+    ".ma-chips span{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:6px 12px;border-radius:999px;font-weight:800;font-size:13px}" +
+    "@keyframes maBob{50%{transform:translateY(-10px) rotate(-2deg)}}@keyframes maIn{from{opacity:0;transform:translateY(24px) scale(.98)}to{opacity:1;transform:none}}" +
+    ".ma-card{position:relative;box-sizing:border-box;width:100%;background:rgba(255,255,255,.82);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border:1px solid rgba(255,255,255,.7);border-radius:28px;" +
+    "box-shadow:0 30px 60px -20px rgba(30,10,80,.55),inset 0 1px 0 rgba(255,255,255,.8);padding:26px;animation:maIn .8s .12s cubic-bezier(.2,.8,.2,1) both}" +
+    "@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.ma-card{background:rgba(255,255,255,.96)}}" +
+    ".ma-card h2{font:700 24px/1.2 var(--x-round,Fredoka,system-ui);margin:0 0 4px}.ma-sub{margin:0 0 18px;color:#5E5785;font-weight:600;font-size:15px}" +
+    ".ma-tabs{position:relative;display:grid;grid-template-columns:1fr 1fr;background:rgba(124,77,255,.12);border-radius:999px;padding:5px;margin-bottom:18px}" +
+    ".ma-tabs::before{content:'';position:absolute;top:5px;bottom:5px;left:5px;width:calc(50% - 5px);border-radius:999px;background:#fff;box-shadow:0 4px 14px rgba(76,43,184,.25);transition:transform .38s cubic-bezier(.3,1.3,.5,1)}" +
+    ".ma-tabs[data-tab=up]::before{transform:translateX(100%)}" +
+    ".ma-tabs button{position:relative;z-index:1;border:0;border-radius:999px;min-height:44px;padding:10px;font:800 16px/1 var(--x-body,Nunito,system-ui);background:transparent;cursor:pointer;color:#5E5785;transition:color .25s}" +
+    ".ma-tabs button[aria-selected=true]{color:#5A2FD6}" +
+    ".ma-f{display:grid;gap:14px;margin:0}.ma-f.ma-anim{animation:maSwap .4s cubic-bezier(.2,.8,.2,1) both}@keyframes maSwap{from{opacity:0;transform:translateX(var(--dx,16px))}to{opacity:1;transform:none}}" +
+    ".ma-fld{display:grid;gap:6px;min-width:0}.ma-fld>span:first-child{font-weight:800;font-size:14px;color:#2B2350;transition:color .2s}.ma-fld:focus-within>span:first-child{color:#7C4DFF}" +
+    ".ma-in{position:relative;display:flex;align-items:center}.ma-in>svg{position:absolute;left:14px;width:20px;height:20px;color:#9A93BE;pointer-events:none;transition:color .2s,transform .2s}" +
+    ".ma-in:focus-within>svg{color:#7C4DFF;transform:scale(1.1)}" +
+    ".ma-f input,.ma-f select{box-sizing:border-box;width:100%;min-width:0;min-height:50px;font:600 16px/1.2 var(--x-body,Nunito,system-ui);color:#2B2350;padding:12px 14px 12px 44px;border:2px solid rgba(43,35,80,.14);border-radius:14px;background:rgba(255,255,255,.9);transition:border-color .2s,box-shadow .2s,background .2s;-webkit-appearance:none;appearance:none}" +
+    ".ma-f select{padding-left:14px;background-image:linear-gradient(45deg,transparent 50%,#5E5785 50%),linear-gradient(135deg,#5E5785 50%,transparent 50%);background-position:calc(100% - 20px) 50%,calc(100% - 14px) 50%;background-size:6px 6px;background-repeat:no-repeat}" +
+    ".ma-f input::placeholder{color:#A9A3C7}.ma-f input:hover,.ma-f select:hover{border-color:rgba(124,77,255,.4)}" +
+    ".ma-f input:focus,.ma-f select:focus{outline:none;border-color:#7C4DFF;background:#fff;box-shadow:0 0 0 4px rgba(124,77,255,.18)}" +
+    ".ma-f .ma-bad input{border-color:#E5484D;box-shadow:0 0 0 4px rgba(229,72,77,.14)}" +
+    ".ma-pw input{padding-right:56px}.ma-eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:#7A73A3;display:grid;place-items:center;cursor:pointer;transition:background .2s,color .2s}" +
+    ".ma-eye:hover{background:rgba(124,77,255,.1);color:#5A2FD6}.ma-eye svg{width:22px;height:22px}.ma-eye .ma-off{display:none}.ma-eye[aria-pressed=true] .ma-on{display:none}.ma-eye[aria-pressed=true] .ma-off{display:block}" +
+    ".ma-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}" +
+    ".ma-roles{display:flex;gap:8px;flex-wrap:wrap}.ma-roles label{display:flex;align-items:center;gap:6px;min-height:44px;box-sizing:border-box;border:2px solid rgba(43,35,80,.14);border-radius:999px;padding:6px 14px;cursor:pointer;font-weight:800;background:rgba(255,255,255,.8);transition:all .2s}" +
+    ".ma-roles input{accent-color:#7C4DFF;width:18px;height:18px;min-height:0;padding:0;margin:0;-webkit-appearance:auto;appearance:auto}.ma-roles label:has(input:checked){background:#EFE8FF;border-color:#7C4DFF;color:#5A2FD6}" +
+    ".ma-err{color:#C62828;font-weight:800;font-size:14px;min-height:1.2em;margin:-4px 0 -4px}.ma-err:empty{min-height:0;margin:0}" +
+    ".ma-btn{position:relative;display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:52px;border:0;border-radius:16px;cursor:pointer;color:#fff;font:800 17px/1 var(--x-body,Nunito,system-ui);letter-spacing:.2px;" +
+    "background:linear-gradient(135deg,#7C4DFF,#5A2FD6);box-shadow:0 10px 24px -8px rgba(90,47,214,.7);transition:transform .15s,box-shadow .2s,filter .2s;overflow:hidden}" +
+    ".ma-btn--teal{background:linear-gradient(135deg,#14C8B4,#0C9787);box-shadow:0 10px 24px -8px rgba(12,151,135,.7)}" +
+    ".ma-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);transform:translateX(-100%);transition:transform .7s}" +
+    ".ma-btn:hover{transform:translateY(-2px);box-shadow:0 14px 28px -8px rgba(90,47,214,.75);filter:brightness(1.05)}.ma-btn:hover::after{transform:translateX(100%)}" +
+    ".ma-btn:active{transform:translateY(1px) scale(.98);box-shadow:0 4px 10px -4px rgba(90,47,214,.7)}.ma-btn:focus-visible{outline:3px solid #FFC93C;outline-offset:3px}" +
+    ".ma-btn:disabled{cursor:progress;filter:saturate(.8);transform:none}.ma-spin{width:20px;height:20px;border-radius:50%;border:3px solid rgba(255,255,255,.4);border-top-color:#fff;animation:maSpin .7s linear infinite}" +
+    "@keyframes maSpin{to{transform:rotate(360deg)}}" +
+    ".ma-shake{animation:maShake .45s cubic-bezier(.36,.07,.19,.97) both!important}@keyframes maShake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-8px)}40%,60%{transform:translateX(8px)}}" +
+    "@media (max-width:820px){.ma-wrap{grid-template-columns:minmax(0,1fr);gap:16px;padding:20px 16px 28px;align-content:start;max-width:480px}.ma-hero img{width:96px}.ma-hero h1{font-size:30px;margin:4px 0 2px}.ma-hero p{font-size:14px}.ma-chips{display:none}}" +
+    "@media (max-width:430px){.ma-wrap{padding:14px 12px 24px}.ma-card{padding:20px 16px;border-radius:22px}.ma-card h2{font-size:21px}.ma-sub{font-size:14px;margin-bottom:14px}.ma-row2{grid-template-columns:1fr}.ma-hero{display:flex;align-items:center;justify-content:center;gap:10px;text-align:left}.ma-hero img{width:64px}.ma-hero h1{font-size:26px}.ma-hero p{font-size:13px}}" +
+    "@media (max-height:520px) and (max-width:820px){.ma-hero{display:none}}" +
+    "@media (prefers-reduced-motion:reduce){.ma-gate,.ma-gate *,.ma-gate *::before,.ma-gate *::after{animation:none!important;transition:none!important}.ma-sym{display:none}.ma-spin{animation:maSpin 1.5s linear infinite!important}}" +
+    ".ma-user{display:inline-flex;align-items:center;gap:8px}" +
     ".ma-user button{border:3px solid #2B2350;border-radius:999px;background:#fff;padding:6px 12px;font-weight:800;cursor:pointer;box-shadow:0 3px 0 #2B2350}" +
-    "@media (max-width:760px){.ma-wrap{grid-template-columns:1fr}.ma-hero img{width:150px}.ma-row2{grid-template-columns:1fr}}" +
     /* admin */
     ".ad-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 16px}.ad-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}" +
     ".ad-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:12px}.ad-tools input,.ad-tools select,.ad-in{font:600 15px inherit;padding:9px 12px;border:3px solid #2B2350;border-radius:12px;background:#fff;min-width:0}" +
@@ -93,42 +135,86 @@
   document.head.appendChild(css);
 
   /* ---------- gate (login / signup) ---------- */
+  var ICON = {
+    mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg>',
+    lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
+    user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
+    eye: '<svg class="ma-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>' +
+         '<svg class="ma-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.9 10.9 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6A17.4 17.4 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>'
+  };
+  var fld = function (label, input, icon, pw) {
+    return '<label class="ma-fld"><span>' + label + '</span><span class="ma-in' + (pw ? " ma-pw" : "") + '">' + ICON[icon] + input +
+      (pw ? '<button type="button" class="ma-eye" data-eye="' + pw + '" aria-label="Show password" aria-pressed="false">' + ICON.eye + "</button>" : "") + "</span></label>";
+  };
+  var SYMS = ["π", "∑", "√", "÷", "×", "+", "=", "∞", "%", "x²", "∫", "θ", "½", "Δ", "7", "3"], symHtml = "";
+  for (var si = 0; si < 16; si++) symHtml += '<span class="ma-sym" style="left:' + ((si * 37 + 5) % 96) + "%;font-size:" + (20 + (si * 7) % 22) + "px;animation-duration:" + (16 + (si * 5) % 14) + "s;animation-delay:-" + ((si * 3.7) % 20).toFixed(1) + 's">' + SYMS[si] + "</span>";
   var gate = document.createElement("div");
   gate.className = "ma-gate"; gate.setAttribute("role", "dialog"); gate.setAttribute("aria-modal", "true"); gate.setAttribute("aria-labelledby", "ma-title");
   gate.innerHTML =
-    '<div class="ma-wrap"><div class="ma-hero"><img src="' + OWL + '" alt="Quizzy the Owl waving" /><h1 id="ma-title">MathQuest</h1><p>Learn. Play. Solve. Master. · CBSE Class 9 &amp; 10</p></div>' +
-    '<div class="ma-card"><div class="ma-tabs" role="tablist"><button type="button" role="tab" id="ma-t-in" aria-selected="true">Log in</button><button type="button" role="tab" id="ma-t-up" aria-selected="false">Sign up</button></div>' +
-    '<form class="ma-f" id="ma-login" novalidate><label>Email<input type="email" id="ma-le" autocomplete="username" autocapitalize="off" spellcheck="false" required placeholder="you@example.com" /></label>' +
-    '<label>Password<span class="ma-pw"><input type="password" id="ma-lp" autocomplete="current-password" autocapitalize="off" required placeholder="Your password" /><button type="button" data-eye="ma-lp" aria-label="Show password">Show</button></span></label>' +
-    '<p class="ma-err" id="ma-lerr" role="alert"></p><button class="x-btn x-btn--yellow" type="button" data-sub="1" id="ma-lgo">Log in 🚀</button>' +
-    '<p class="ma-demo">Demo student: aarya@mathquest.dev · Password@123</p></form>' +
-    '<form class="ma-f" id="ma-signup" novalidate hidden><label>Full name<input id="ma-sn" autocomplete="name" required placeholder="Your name" /></label>' +
-    '<label>Email<input type="email" id="ma-se" autocomplete="email" required placeholder="you@example.com" /></label>' +
-    '<div class="ma-row2"><label>Password<span class="ma-pw"><input type="password" id="ma-sp" autocomplete="new-password" required placeholder="8+ chars, 1 number" /><button type="button" data-eye="ma-sp" aria-label="Show password">Show</button></span></label>' +
-    '<label>Confirm password<input type="password" id="ma-sp2" autocomplete="new-password" required placeholder="Type it again" /></label></div>' +
-    '<fieldset style="border:0;padding:0;margin:0"><legend style="font-weight:800;color:#2B2350;margin-bottom:6px">I am a</legend><div class="ma-roles">' +
+    '<div class="ma-bg" aria-hidden="true"><span class="ma-blob b1"></span><span class="ma-blob b2"></span><span class="ma-blob b3"></span>' + symHtml + "</div>" +
+    '<div class="ma-wrap"><div class="ma-hero"><img src="' + OWL + '" alt="Quizzy the Owl waving" /><div><h1 id="ma-title">MathQuest</h1><p>Learn. Play. Solve. Master. · CBSE Class 9 &amp; 10</p></div>' +
+    '<div class="ma-chips" aria-hidden="true"><span>⭐ Earn XP</span><span>🔥 Keep streaks</span><span>🏆 Win badges</span></div></div>' +
+    '<div class="ma-card"><h2 id="ma-head">Welcome back 👋</h2><p class="ma-sub" id="ma-subt">Log in to continue your maths quest.</p>' +
+    '<div class="ma-tabs" role="tablist" data-tab="in"><button type="button" role="tab" id="ma-t-in" aria-selected="true" aria-controls="ma-login">Log in</button><button type="button" role="tab" id="ma-t-up" aria-selected="false" aria-controls="ma-signup">Sign up</button></div>' +
+    '<form class="ma-f" id="ma-login" novalidate>' +
+    fld("Email", '<input type="email" id="ma-le" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" required placeholder="you@example.com" />', "mail") +
+    fld("Password", '<input type="password" id="ma-lp" autocomplete="current-password" autocapitalize="off" required placeholder="Your password" />', "lock", "ma-lp") +
+    '<p class="ma-err" id="ma-lerr" role="alert"></p><button class="ma-btn" type="button" data-sub="1" id="ma-lgo">Log in 🚀</button></form>' +
+    '<form class="ma-f" id="ma-signup" novalidate hidden>' +
+    fld("Full name", '<input id="ma-sn" autocomplete="name" required placeholder="Your name" />', "user") +
+    fld("Email", '<input type="email" id="ma-se" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" required placeholder="you@example.com" />', "mail") +
+    '<div class="ma-row2">' + fld("Password", '<input type="password" id="ma-sp" autocomplete="new-password" required placeholder="8+ chars, 1 number" />', "lock", "ma-sp") +
+    fld("Confirm password", '<input type="password" id="ma-sp2" autocomplete="new-password" required placeholder="Type it again" />', "lock", "ma-sp2") + "</div>" +
+    '<fieldset style="border:0;padding:0;margin:0;min-width:0"><legend style="font-weight:800;font-size:14px;color:#2B2350;margin-bottom:6px;padding:0">I am a</legend><div class="ma-roles">' +
     '<label><input type="radio" name="ma-role" value="STUDENT" checked /> 🎒 Student</label><label><input type="radio" name="ma-role" value="PARENT" /> 👪 Parent</label><label><input type="radio" name="ma-role" value="TEACHER" /> 🧑‍🏫 Teacher</label></div></fieldset>' +
-    '<label id="ma-clsw">Class<select id="ma-scls"><option value="9">Class 9</option><option value="10">Class 10</option></select></label>' +
-    '<p class="ma-err" id="ma-serr" role="alert"></p><button class="x-btn x-btn--teal" type="button" data-sub="1" id="ma-sgo">Create account ✨</button>' +
-    '<p class="ma-demo">Admin accounts can’t be created here; an admin makes them from the Admin panel.</p></form>' +
-    '<details class="ma-mode"><summary>⚙️ Where to log in: <span id="ma-modelab">Demo (offline)</span></summary><div class="ma-f" style="margin-top:8px">' +
-    '<div class="ma-roles"><label><input type="radio" name="ma-mode" value="demo" checked /> Demo (this tab only)</label><label><input type="radio" name="ma-mode" value="server" /> MongoDB backend</label></div>' +
-    '<label>API URL<input id="ma-url" value="' + esc((API && API.base) || "http://localhost:5000/api/v1") + '" /></label>' +
-    '<p class="ad-small">Demo accounts reset when the page reloads. Use the backend to keep accounts and progress.</p></div></details></div></div>';
+    '<label class="ma-fld" id="ma-clsw"><span>Class</span><select id="ma-scls"><option value="9">Class 9</option><option value="10">Class 10</option></select></label>' +
+    '<p class="ma-err" id="ma-serr" role="alert"></p><button class="ma-btn ma-btn--teal" type="button" data-sub="1" id="ma-sgo">Create account ✨</button></form>' +
+    "</div></div>";
   document.body.appendChild(gate);
   var app = q(".x-app"); if (app) app.setAttribute("aria-hidden", "true");
 
-  function tabGate(up) { q("#ma-login").hidden = up; q("#ma-signup").hidden = !up; q("#ma-t-in").setAttribute("aria-selected", !up); q("#ma-t-up").setAttribute("aria-selected", up); setTimeout(function () { (up ? q("#ma-sn") : q("#ma-le")).focus(); }, 0); }
+  function tabGate(up) {
+    var wasUp = !q("#ma-signup").hidden, f = up ? q("#ma-signup") : q("#ma-login");
+    q("#ma-login").hidden = up; q("#ma-signup").hidden = !up; q("#ma-t-in").setAttribute("aria-selected", !up); q("#ma-t-up").setAttribute("aria-selected", up);
+    q(".ma-tabs", gate).setAttribute("data-tab", up ? "up" : "in");
+    q("#ma-head").textContent = up ? "Create your account ✨" : "Welcome back 👋";
+    q("#ma-subt").textContent = up ? "Join free and start earning XP today." : "Log in to continue your maths quest.";
+    q("#ma-lerr").textContent = ""; q("#ma-serr").textContent = "";
+    if (wasUp !== up) { f.style.setProperty("--dx", up ? "24px" : "-24px"); f.classList.remove("ma-anim"); void f.offsetWidth; f.classList.add("ma-anim"); }
+    if (window.matchMedia && !window.matchMedia("(pointer:coarse)").matches) setTimeout(function () { (up ? q("#ma-sn") : q("#ma-le")).focus(); }, 0);
+  }
   q("#ma-t-in").onclick = function () { tabGate(false); }; q("#ma-t-up").onclick = function () { tabGate(true); };
-  gate.addEventListener("click", function (e) { var b = e.target.closest("[data-eye]"); if (!b) return; var i = q("#" + b.getAttribute("data-eye")); var show = i.type === "password"; i.type = show ? "text" : "password"; b.textContent = show ? "Hide" : "Show"; b.setAttribute("aria-label", show ? "Hide password" : "Show password"); });
+  q(".ma-tabs", gate).addEventListener("keydown", function (e) { if (e.key === "ArrowRight" || e.key === "ArrowLeft") { var up = e.key === "ArrowRight"; tabGate(up); q(up ? "#ma-t-up" : "#ma-t-in").focus(); } });
+  gate.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-eye]"); if (!b) return; e.preventDefault();
+    var i = q("#" + b.getAttribute("data-eye")), show = i.type === "password", pos = i.selectionStart;
+    i.type = show ? "text" : "password"; b.setAttribute("aria-pressed", show); b.setAttribute("aria-label", show ? "Hide password" : "Show password");
+    try { i.focus(); if (pos != null) i.setSelectionRange(pos, pos); } catch (x) {}
+  });
   qa('input[name="ma-role"]', gate).forEach(function (r) { r.onchange = function () { q("#ma-clsw").hidden = r.value !== "STUDENT" || !r.checked; }; });
-  qa('input[name="ma-mode"]', gate).forEach(function (r) { r.onchange = function () { q("#ma-modelab").textContent = mode() === "server" ? "MongoDB backend" : "Demo (offline)"; }; });
-  var mode = function () { return (q('input[name="ma-mode"]:checked', gate) || {}).value || "demo"; };
-  // Use the live MongoDB backend by default when it is reachable; otherwise stay in demo mode.
-  function setMode(m) { var r = q('input[name="ma-mode"][value="' + m + '"]', gate); if (r) r.checked = true; q("#ma-modelab").textContent = m === "server" ? "MongoDB backend (live)" : "Demo (offline)"; }
-  if (API && API.ready) API.ready.then(function (ok) { if (ok) { setMode("server"); var u = q("#ma-url"); if (u) u.value = API.base; } });
+  // Shake the card and mark the field whenever an error message appears.
+  var card = q(".ma-card", gate);
+  card.addEventListener("animationend", function (e) { if (e.animationName === "maShake") card.classList.remove("ma-shake"); });
+  if (window.MutationObserver) qa(".ma-err", gate).forEach(function (el) {
+    new MutationObserver(function () {
+      qa(".ma-bad", el.parentNode).forEach(function (x) { x.classList.remove("ma-bad"); });
+      if (!el.textContent || /demo mode…$/.test(el.textContent)) return;
+      card.classList.remove("ma-shake"); void card.offsetWidth; card.classList.add("ma-shake");
+      var a = document.activeElement; if (a && a.closest && a.closest(".ma-fld") && el.parentNode.contains(a)) a.closest(".ma-in, .ma-fld").classList.add("ma-bad");
+    }).observe(el, { childList: true, characterData: true, subtree: true });
+  });
+  // Backend: the live same-origin API by default; quietly falls back to the in-browser demo if it can't be reached.
+  var MODE = API && API.connect ? "server" : "demo";
+  var mode = function () { return MODE; };
+  function setMode(m) { MODE = m; }
+  var apiBase = function () { return String((API && API.base) || "").replace(/\/+$/, ""); };
+  if (API && API.ready) API.ready.then(function (ok) { if (!ok && !API.on) setMode("demo"); });
   var emailOk = function (e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e); };
-  function busy(btn, on, txt) { btn.disabled = on; if (on) { btn.dataset.t = btn.textContent; btn.textContent = txt; } else if (btn.dataset.t) btn.textContent = btn.dataset.t; }
+  function busy(btn, on, txt) {
+    btn.disabled = on; btn.setAttribute("aria-busy", on);
+    if (on) { if (!btn.dataset.t) btn.dataset.t = btn.innerHTML; btn.innerHTML = '<span class="ma-spin" aria-hidden="true"></span>' + esc(txt); }
+    else if (btn.dataset.t) { btn.innerHTML = btn.dataset.t; delete btn.dataset.t; }
+  }
 
   q("#ma-login").addEventListener("submit", function (e) {
     e.preventDefault();
@@ -138,7 +224,7 @@
     if (mode() === "server") {
       if (!API || !API.connect) { err.textContent = "Backend bridge missing."; return; }
       busy(btn, true, "Logging in…");
-      API.connect(q("#ma-url").value.trim().replace(/\/+$/, ""), em, pw).then(function () {
+      API.connect(apiBase(), em, pw).then(function () {
         var u = API.user || {}; start({ id: u.id || u._id, name: u.name, email: u.email, role: u.role }, "server");
       }).catch(function (x) {
         busy(btn, false);
@@ -162,7 +248,7 @@
     if (p.length < 8 || !/\d/.test(p) || !/[a-z]/i.test(p)) { err.textContent = "Password needs 8+ characters with a letter and a number."; q("#ma-sp").focus(); return; }
     if (p !== p2) { err.textContent = "Passwords don’t match."; q("#ma-sp2").focus(); return; }
     if (mode() === "server") {
-      var base = q("#ma-url").value.trim().replace(/\/+$/, ""); API.base = base; busy(btn, true, "Creating…");
+      var base = apiBase(); busy(btn, true, "Creating…");
       var body = { name: n, email: em, password: p, role: role };
       API.call("GET", "/classes").then(function (cl) { var k = (cl || []).filter(function (x) { return x.order === cls || x.classNo === cls; })[0]; if (k) body.classLevelId = k._id; }).catch(function () {})
         .then(function () { return API.call("POST", "/auth/register", body); })
@@ -497,7 +583,7 @@
       var L = { CORRECT_ANSWER: "Correct answer", LESSON_COMPLETE: "Lesson complete", QUIZ_COMPLETE: "Quiz complete", DAILY_CHALLENGE: "Daily challenge", PERFECT_QUIZ: "Perfect quiz bonus" };
       body().innerHTML = '<div class="x-card"><p class="x-eyebrow">Gamification</p><h2 class="x-h2">XP rules</h2><form id="ad-xp" class="ad-tools">' + Object.keys(L).map(function (k) { return "<label>" + L[k] + '<input class="ad-in" type="number" min="0" max="1000" data-xp="' + k + '" value="' + (v[k] != null ? v[k] : 0) + '" /></label>'; }).join("") +
         '<button class="x-btn x-btn--teal x-btn--sm" type="button" data-sub="1">Save</button></form></div>' +
-        '<div class="x-card"><p class="x-eyebrow">Account</p><h2 class="x-h2">Your admin login</h2><p>' + esc(session.user.email) + '</p><p class="ad-small">Change the admin password in the backend <b>.env</b> (ADMIN_PASSWORD) before going live, then run the seed again.</p></div>';
+        '<div class="x-card"><p class="x-eyebrow">Account</p><h2 class="x-h2">Your admin login</h2><p>' + esc(session.user.email) + '</p><p class="ad-small">The admin password is set on the server with the <b>ADMIN_PASSWORD</b> environment variable and applied each time the server starts.</p></div>';
       q("#ad-xp").addEventListener("submit", function (e) { e.preventDefault(); var o = {}; qa("[data-xp]").forEach(function (i) { o[i.getAttribute("data-xp")] = Math.max(0, +i.value || 0); }); DS.saveXp(o).then(function () { logAct("XP rules updated"); toast("XP rules saved ✓"); }).catch(function (x) { toast(x.message); }); });
     }).catch(fail);
   }

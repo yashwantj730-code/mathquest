@@ -2391,7 +2391,7 @@
       '<h2 id="mqa-h">🔌 Connect to backend</h2><p style="margin:0">' + (api.on ? "Connected as <b>" + esc(api.user.name) + "</b>." : "Currently in <b>demo mode</b>.") + "</p>" +
       '<label for="mqa-url">API URL</label><input id="mqa-url" value="' + esc(api.base) + '" />' +
       '<label for="mqa-em">Email</label><input id="mqa-em" type="email" value="' + esc((api.user && api.user.email) || "aarya@mathquest.dev") + '" />' +
-      '<label for="mqa-pw">Password</label><input id="mqa-pw" type="password" value="Password@123" />' +
+      '<label for="mqa-pw">Password</label><input id="mqa-pw" type="password" value="" autocomplete="current-password" />' +
       '<div class="mqa-err" id="mqa-err" role="alert"></div>' +
       '<div class="mqa-row"><button type="button" class="mqa-btn" id="mqa-go">Connect</button><button type="button" class="mqa-btn ghost" id="mqa-demo">Use demo mode</button></div>' +
       '<p class="mqa-note">' + (api.live ? "Live backend is online: progress saves to MongoDB." : "Live backend unreachable right now, so demo mode works offline. Running locally? Start it with <code>npm run dev</code>.") + '</p></div>';

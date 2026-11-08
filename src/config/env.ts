@@ -12,9 +12,11 @@ export const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   clientUrls: [process.env.CLIENT_URL || 'http://localhost:3000', process.env.RENDER_EXTERNAL_URL || ''].join(',').split(',').map(s => s.trim()).filter(Boolean),
   // The Hark Page preview runs in a sandboxed iframe whose Origin is "null"; allow it only in development.
-  // First admin account, created by `npm run seed`. CHANGE ADMIN_PASSWORD before going live.
-  adminEmail: (process.env.ADMIN_EMAIL || 'admin@mathquest.dev').toLowerCase(),
-  adminPassword: process.env.ADMIN_PASSWORD || 'Password@123',
+  // Admin account. When ADMIN_EMAIL and ADMIN_PASSWORD are both set, the server makes sure that admin
+  // exists with this password on every start (see seed/ensureAdmin.ts). There is no default password.
+  adminEmail: (process.env.ADMIN_EMAIL || 'admin@mathquest.dev').trim().toLowerCase(),
+  adminPassword: process.env.ADMIN_PASSWORD || '',
+  adminFromEnv: !!(process.env.ADMIN_EMAIL && process.env.ADMIN_EMAIL.trim() && process.env.ADMIN_PASSWORD),
   adminName: process.env.ADMIN_NAME || 'MathQuest Admin',
   autoSeed: (process.env.AUTO_SEED ?? 'true') === 'true',
   allowNullOrigin: (process.env.ALLOW_NULL_ORIGIN ?? 'true') === 'true',
